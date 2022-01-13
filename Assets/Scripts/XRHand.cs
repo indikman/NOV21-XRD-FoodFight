@@ -9,11 +9,12 @@ public class XRHand : MonoBehaviour
 
     [SerializeField] private string grabButton;
     public Animator anim;
+    public Hand hand = Hand.Left;
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        grabButton = $"XRI_{hand}_GripButton";
     }
 
     // Update is called once per frame
@@ -72,4 +73,11 @@ public class XRHand : MonoBehaviour
             hoveredObject = null;
         }
     }
+}
+
+[System.Serializable]
+public enum Hand
+{
+    Left,
+    Right
 }
