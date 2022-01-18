@@ -6,8 +6,15 @@ public class Locomotion : MonoBehaviour
 {
     public Transform xrRig;
     public float playerSpeed = 2f;
+    public float height = 2f;
+
+    [Range(5, 40)]
+    public int lineResolution = 10;
+    public Renderer screen;
+
     private XRHand controller;
     private LineRenderer line;
+    private Vector3 hitPosition;
 
     // Start is called before the first frame update
     void Start()
@@ -15,6 +22,7 @@ public class Locomotion : MonoBehaviour
         controller = GetComponent<XRHand>();
         line = GetComponent<LineRenderer>();
         line.enabled = false;
+        line.positionCount = lineResolution +1;
     }
 
     // Update is called once per frame
@@ -34,6 +42,7 @@ public class Locomotion : MonoBehaviour
         // checking if the thumbstick is pressed
         if (Input.GetButtonDown($"XRI_{controller.hand}_Primary2DAxisClick"))
         {
+            // turnary operator
             float rotation = Input.GetAxis($"XRI_{controller.hand}_Primary2DAxis_Horizontal") > 0 ? 30:-30 ;
 
             xrRig.Rotate(0, rotation, 0);
@@ -48,7 +57,7 @@ public class Locomotion : MonoBehaviour
             //    xrRig.Rotate(0, -30, 0);
             //}
 
-            // turnary operator
+            
 
         }
     }
@@ -86,12 +95,72 @@ public class Locomotion : MonoBehaviour
         if(Physics.Raycast(ray, out hitInfo, 100))
         {
             line.enabled = true;
-            line.SetPosition(0, transform.position);
-            line.SetPosition(1, hitInfo.point);
+            //line.SetPosition(0, transform.position);
+            //line.SetPosition(1, hitInfo.point);
+
+            hitPosition = hitInfo.point;
+
+            // curve the line
+            CurveLine(hitInfo.point);
+
+            bool validTarget = hitInfo.collider.CompareTag("Teleporation");
+
+            Color color = validTarget ? Color.blue : Color.red;
+
+            line.endColor = color;
+            line.startColor = color;
+
+            if(validTarget && Input.GetButtonDown($"XRI_{controller.hand}_TriggerButton"))
+            {
+                StartCoroutine(FadeTeleport());
+            }
+
         }
         else
         {
             line.enabled = false;
         }
+    }
+
+
+    void CurveLine(Vector3 hitPosition)
+    {
+        Vector3 A = controller.transform.position;
+        Vector3 C = hitPosition;
+        Vector3 B = (C - A) / 2 + A;
+
+        B.y += height;
+
+        for (int i = 0; i <= lineResolution; i++)
+        {
+            float t = (float)i / (float)lineResolution;
+            Vector3 AtoB = Vector3.Lerp(A, B, t);
+            Vector3 BtoC = Vector3.Lerp(B, C, t);
+            Vector3 curvePosition = Vector3.Lerp(AtoB, BtoC, t);
+
+            line.SetPosition(i, curvePosition);
+        } 
+    }
+
+    private IEnumerator FadeTeleport()
+    {
+        float currentTime = 0f;
+        while (currentTime < 1)
+        {
+            currentTime += Time.deltaTime;
+            yield return new WaitForEndOfFrame();
+            screen.material.color = Color.Lerp(Color.clear, Color.black, currentTime);
+        }
+        xrRig.position = hitPosition;
+
+        yield return new WaitForSeconds(0.5f);
+
+        while (currentTime > 0)
+        {
+            currentTime -= Time.deltaTime;
+            yield return new WaitForEndOfFrame();
+            screen.material.color = Color.Lerp(Color.clear, Color.black, currentTime);
+        }
+
     }
 }

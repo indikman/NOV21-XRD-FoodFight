@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Socket
   - Target
+  - Teleporation
   layers:
   - Default
   - TransparentFX
